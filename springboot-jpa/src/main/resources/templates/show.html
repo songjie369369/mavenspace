@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" >
+<head>
+    <meta charset="UTF-8" />
+    <title>展示页面</title>
+    <script src="../jquery-1.9.1.min.js"></script>
+    <script src="../jquery-easyui-v1.6.1/jquery.min.js"></script>
+    <script src="../jquery-easyui-v1.6.1/jquery.easyui.min.js"></script>
+    <script src="../jquery-easyui-v1.6.1/plugins/jquery.tree.js"></script>
+    <script src="../jquery-easyui-v1.6.1/locale/easyui-lang-zh_CN.js"></script>
+    <link rel="stylesheet" href="../jquery-easyui-v1.6.1/themes/color.css" />
+    <link rel="stylesheet" href="../jquery-easyui-v1.6.1/themes/icon.css" />
+    <link rel="stylesheet" href="../jquery-easyui-v1.6.1/themes/default/easyui.css" />
+    <script type="text/javascript" src="../uploadify/jquery.uploadify.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="../uploadify/uploadify.css" />
+</head>
+<body>
+    <div id="carDialog" class="easyui-dialog" data-options="title:'用户',modal:true,closed:true,
+        buttons:[
+            {
+                text:'保存',
+                handler:function(){
+                        saveUser();
+                    }
+                }
+        ]" style="width:700px;height:500px">
+        <form action="###" id="g_form">
+            <table>
+                <tr>
+                    <td>用户登录名</td>
+                    <td><input type="text" class="easyui-textbox" name="userName" />
+                        <input type="text" class="easyui-textbox" name="id" />
+                    </td>
+                </tr>
+                <tr>
+                    <td>密码</td>
+                    <td><input type="text" class="easyui-textbox"  name="userPwd" /></td>
+                </tr>
+                <tr>
+                    <td>注册时间</td>
+                    <td>
+                        <input type="text" class="easyui-datebox"  name="times"/>
+                    </td>
+                </tr>
+                <tr>
+                    <td>头像</td>
+                    <td>
+                        <div id="fileQueue"></div>
+                        <img id="add_img"  width="100" height="100"/>
+                        <input type="file" id="uploadImg" name="image"/>
+                        <input type="text" name='url'/>
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+    <div class="easyui-layout" data-options="fit:true">
+        <div data-options="region:'north',title:'标题'" style="height:20%" >
+            <div align="center">
+                <center><font color="red" size="7px">用户管理系统</font></center>
+            </div>
+        </div>
+        <div data-options="region:'west',title:'状态'" style="width:15%" >
+        </div>
+        <div data-options="region:'center',title:'功能'" style="width:85%" >
+            <div id="myTabs"  class="easyui-tabs" data-options="fit:true">
+                <div title ="用户查询">
+                    <div id="search">
+                        <a class="easyui-linkbutton" data-options="iconCls:'icon-remove'" onclick="deleteAll()">批删</a>
+                        <a class="easyui-linkbutton" data-options="iconCls:'icon-add'" onclick="addUser()">新增</a>
+                    </div>
+                    <table id="atable"></table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+<script>
+    $(function(){
+       queryUserList();
+    })
+    //修改
+    function updates(row){
+                $('#g_form').form('load',row);
+                $('#add_img').attr('src','/'+row.url);
+                $('#carDialog').dialog({
+                    title:'修改用户',
+                    iconCls:'icon-add',
+                    closed:false
+
+        })
+        uploadify();
+    }
+    //批删
+    function deleteAll(){
+        var rows = $("#atable").datagrid("getSelections");
+        var ids = '';
+        for ( var i in rows) {
+            ids += rows[i].id+',';
+        }
+        ids = ids.substring(0,ids.length-1);
+        deletes(ids);
+    }
+    //单删
+    function deletes(ids){
+        if(confirm("确定删除User")){
+            $.ajax({
+                url : "/user/deletes",
+                async : true,
+                type: "POST",
+                data: {"ids":ids},
+                dataType: "json",
+                contentType: "application/x-www-form-urlencoded; charset=utf-8",
+                success : function(data) {
+                    if(data == 1){
+                        alert("删除成功！");
+                    }else{
+                        alert("删除失败！");
+                    }
+                },
+                error : function(e){
+                    alert("代码有问题，请打开F12和debug进行调试！");
+                }
+            });
+        }
+    }
+    //查询
+    function queryUserList(){
+        $('#atable').datagrid({
+            toolbar:'#search', //与新增按钮合并
+            fitColumns:true, //自适应列宽
+            url:'/user/queryUserList',
+            columns:[[
+                {field:'id',title:'Id',width:300},
+                {field:'userName',title:'用户名',width:300},
+                {field:'userPwd',title:'用户密码',width:300},
+                {field:'datetime',title:'注册时间',width:300},
+                {field:'url',title:'头像',width:300,
+                    formatter:function(value,row,index){
+                        return '<img src="/'+value+'" width="20" />';
+                    }
+                },
+                {field:'sss',title:'操作',width:300,
+                    formatter:function(value,row,index){
+                        var valueStr = JSON.stringify(row);
+                        var a = row.id;
+                        var asd1 = "'javascript:updates(".concat(valueStr).concat(")'");
+                        var asd3 = "'javascript:deletes(".concat(a).concat(")'");
+                        var asd2 = "<a href=" + asd1 + ">修改</a>".concat("<a href="+asd3+" >删除</a>");
+                        return asd2;
+                    }
+                },
+            ]]
+        })
+    }
+    //新增
+    function addUser(){
+        //弹出dialog框
+        $("#carDialog").dialog({
+            title:'新增用户',
+            iconCls:'icon-add',
+            closed:false,
+        })
+        uploadify();
+    }
+    function  saveUser(){
+        var g_form = new FormData($("#g_form")[0]);
+        alert(g_form);
+        $.ajax({
+            url : "/user/insertUser",
+            async : true,
+            type: "POST",
+            data: g_form,
+            processData: false,
+            contentType:false,
+            dataType: "json",
+            success : function(data) {
+                if(data == 1){
+                    alert("添加成功！");
+                }
+            },
+            error : function(e){
+                alert("代码有问题，请打开F12和debug进行调试！");
+            }
+        });
+    }
+    //启用uploaddify
+    function uploadify(){
+        //AJAX 异步 上传文件 不保存数据
+        $("#uploadImg").uploadify({
+            //插件自带  不可忽略的参数flash插件
+            'swf': '../uploadify/uploadify.swf',
+            //前台请求后台的url 不可忽略的参数
+            'uploader': '/user/upFile',
+            //给div的进度条加背景 不可忽略
+            'queueID': 'fileQueue',
+            //上传文件文件名 跟file标签 name值 保持一致
+            'fileObjName' : 'image',
+            //给上传按钮设置文字
+            'buttonText': '上传图片',
+            //设置文件是否自动上传
+            'auto': true,
+            //可以同时选择多个文件 默认为true  不可忽略
+            'multi': true,
+            //上传后队列是否消失
+            'removeCompleted': true,
+            //队列消失时间
+            'removeTimeout' : 1,
+            //上传文件的个数，项目中一共可以上传文件的个数
+            'uploadLimit':  -1,
+            'fileTypeExts': '*.*',
+            //成功回调函数 file：文件对象。data后台输出数据
+            'onUploadSuccess':function(file,data,response){
+                alert(data);
+                //data = eval("("+data+")");
+                //alert(file.name+" 路径："+data.imagePath)
+                //图片回显， 预览
+                $("#add_img").attr("src","../../"+data);
+                // 文本框 回填
+                $("[name='url']").val(data);
+            }
+        });
+    }
+</script>
+</html>
